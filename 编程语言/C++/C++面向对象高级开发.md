@@ -94,9 +94,26 @@ A::getInstance().setup();
 
 
 参数传递：pass by value vs. pass by reference (to const)
+- 缺省情况C++以pass-by-value（继承C的方式）传递对象至（或来自）函数。函数参数都是以实际参数的复件为初值，调用端所获得的也是函数返回值的一个复件
+- pass-by-value耗时的原因：类的对象作为函数参数时，如果使用值传递，要先拷贝一份实参的副本，需要调用类的拷贝构造函数，函数结束时副本被销毁，需要调用析构函数
+- pass-by-reference的优势：
+  - 没有任何构造函数或析构函数被调用，因为没有任何对象被新建
+  - 可以在参数声明中加上const，防止传入的对象被修改
+  - 避免slicing（对象切割）问题（子类对象被切割成父类对象，功能缺失）
+- reference往往以指针的形式实现，传递的是指针，对象为内置类型，STL的迭代器和函数对象，pass-by-value高效一些
 
 
+返回值传递：return by value vs. return by reference (to const)
+- 如果要return的东西，运行这个函数之前已经有一块memory可以存放这个东西，则可以return by reference
+- 如果事先没有memory存放这个东西，那么只能传回一个local object
 
+
+friend（友元）
+- 类的友元函数是定义在类外部，但有权访问类的所有私有（private）成员和保护（protected）成员
+- 尽管友元函数的原型有在类的定义中出现过，但是友元函数并不是成员函数
+- 友元可以是一个函数，该函数被称为友元函数；友元也可以是一个类，该类被称为友元类，在这种情况下，整个类及其所有成员都是友元
+- 如果要声明函数为一个类的友元，需要在类定义中该函数原型前使用关键字 friend
+- 相同class的各个object互为friends
 
 complex类
 ```C++
