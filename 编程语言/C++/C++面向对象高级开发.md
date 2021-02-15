@@ -106,6 +106,12 @@ A::getInstance().setup();
 返回值传递：return by value vs. return by reference (to const)
 - 如果要return的东西，运行这个函数之前已经有一块memory可以存放这个东西，则可以return by reference
 - 如果事先没有memory存放这个东西，那么只能传回一个local object
+- 传递者无需知道接收者是以reference形式接收
+
+temp object（临时对象）：typename();
+- 用构造函数作为隐式类型转换函数时，会创建临时对象
+- 建立一个没有命名的非堆（non-heap）对象，也就是无名对象时，会产生临时对象
+- 函数返回一个对象值时，会产生临时对象，函数中的返回值会以值拷贝的形式拷贝到被调函数栈中的一个临时对象
 
 
 friend（友元）
@@ -115,20 +121,216 @@ friend（友元）
 - 如果要声明函数为一个类的友元，需要在类定义中该函数原型前使用关键字 friend
 - 相同class的各个object互为friends
 
+操作符重载：
+
+this指针详解：
+- 一、问题
+  - 1.一个类中的不同对象在调用自己的成员函数时，其实它们调用的是同一段函数代码，那么成员函数如何知道要访问哪个对象的数据成员呢？
+    - 没错，就是通过this指针。每个对象都拥有一个this指针，this指针记录对象的内存地址，当我们调用成员函数时，成员函数默认第一个参数为T* const register this，大多数编译器通过ecx寄存器传递this指针，通过 this 这个隐式参数可以访问该对象的数据成员。
+  - 2.类的成员函数为什么不能用static和const同时修饰？
+    - 类中用const修饰的函数通常用来防止修改对象的数据成员，函数末尾的const是用来修饰this指针，防止在函数内对数据成员进行修改，而静态函数中是没有this指针的，无法访问到对象的数据成员，与C++ static语义冲突，所以不能。
+- 二、this指针注意点
+  - C++中this关键字是一个指向对象自己的一个常量指针，不能给this赋值
+  - 只有成员函数才有this指针，友元函数不是类的成员函数，没有this指针
+  - 静态函数也是没有this指针的，静态函数如同静态变量一样，不属于具体的哪一个对象
+  - this指针作用域在类成员函数内部，在类外也无法获取
+  - this指针并不是对象的一部分，this指针所占的内存大小是不会反应在sizeof操作符上的
+- 三、this指针的使用
+  - 1.在类的非静态成员函数中返回类对象本身的时候，直接使用 return *this
+  - 2.修改类成员变量或参数与成员变量名相同时，如this->a = a 
+  - 3.在class定义时要用到类型变量自身时，因为这时候还不知道变量名，就用this这样的指针来使用变量自身
+
+
 complex类
 ```C++
-class complex   // class head
-{               // class body
+#ifndef __COMPLEX__
+#define __COMPLEX__
+
+class complex 
+{
 public:
-  complex (double r = 0, double i = 0) //默认实参
-    : re (r), im (u)  //初值列
-  { }
-  complex& operator += (const complex&);
-  double real () const { return re; } //常量成员函数
-  double imag () const { return im; }
+    complex(double r = 0, double i = 0)
+    : re(r), im(i)
+    {   }
+
+    double real() const { return re; }
+    double imag() const { return im; }
+
+    complex& operator += (const complex& r);
+    complex& operator -= (const complex& r);
+    complex& operator *= (const complex& r);
+    complex& operator /= (const complex& r);
+
 private:
-  double re, im;
-  
-  friend complex& __doapl (complex*, const complex&);
+    double re;
+    double im;
+
+    friend complex& __doapl(complex* ths, const complex& r);
+    friend complex& __doami(complex* ths, const complex& r);
+    friend complex& __doaml(complex* ths, const complex& r);
+};
+
+complex& __doapl(complex* ths, const complex& r)
+{
+    ths->re += r.re;
+    ths->im += r.im; 
+    return *ths;
 }
+
+complex& complex::operator += (const complex& r)
+{
+    return __doapl(this, r);
+}
+
+complex& __doami(complex* ths, const complex& r)
+{
+    ths->re -= r.re;
+    ths->im -= r.im;
+    return *ths;
+}
+
+complex& complex::operator -= (const complex& r)
+{
+    return  __doami(this, r);
+}
+
+complex& __doaml(complex* ths, const complex& r)
+{
+    double f = ths->re * r.re - ths->im * r.im;
+    ths->im = ths->re * r.im + ths->im * r.re;
+    ths->re = f;
+    return *ths;
+}
+
+complex& complex::operator *= (const complex& r)
+{
+    return __doami(this, r);
+}
+
+inline double real(const complex& r)
+{
+    return r.real();
+}
+
+inline double imag(const complex& r)
+{
+    return r.imag();
+}
+
+inline complex operator + (const complex& x, const complex& y)
+{
+    return complex(real(x) + real(y), imag(x) + imag(y));
+}
+
+inline complex operator + (double x, const complex& y)
+{
+    return complex(x + real(y), imag(y));
+}
+
+inline complex operator + (const complex& x, double y)
+{
+    return complex(real(x) + y, imag(x));
+}
+
+inline complex operator - (const complex& x, const complex& y)
+{
+    return complex(real(x) - real(y), imag(x) - imag(y));
+}
+
+inline complex operator - (const complex& x, double y)
+{
+    return complex(real(x) - y, imag(x));
+}
+
+inline complex operator - (double x, const complex& y)
+{
+    return complex(x - real(y), imag(y));
+}
+
+inline complex operator * (const complex& x, const complex& y)
+{
+    return complex(real(x) * real(y) - imag(x) * imag(y), real(x) * imag(y) + imag(x) * real(y));
+}
+
+inline complex operator * (const complex& x, double y)
+{
+    return complex(real(x) * y, imag(x));
+}
+
+inline complex operator * (double x, const complex& y)
+{
+    return complex(x * real(y), imag(y));
+}
+
+inline complex operator / (const complex& x, double y)
+{
+    return complex(real(x) / y, imag(x) / y);
+}
+
+inline complex operator + (const complex& r)
+{
+    return r;
+}
+
+inline complex operator - (const complex& r)
+{
+    return complex(-real(r), -imag(r));
+}
+
+inline bool operator == (const complex& x, const complex& y)
+{
+    return (real(x) == real(y) && imag(x) == imag(y));
+}
+
+inline bool operator == (const complex& x, double y)
+{
+    return (real(x) == y && imag(x) == 0);
+}
+
+inline bool operator == (double x, const complex& y)
+{
+    return (x == real(y) && imag(y) == 0);
+}
+
+inline bool operator != (const complex& x, const complex& y)
+{
+    return (real(x) != real(y) || imag(x) != imag(y));
+}
+
+inline bool operator != (const complex& x, double y)
+{
+    return (real(x) != y || imag(x) != 0);
+}
+
+inline bool operator != (double x, const complex& y)
+{
+    return (x != real(y) || imag(y) != 0);
+}
+
+#include <cmath>
+
+inline complex polar (double r, double t)
+{
+  return complex (r * cos (t), r * sin (t));
+}
+
+inline complex conj (const complex& x) 
+{
+  return complex (real (x), -imag (x));
+}
+
+inline double norm (const complex& x)
+{
+  return real (x) * real (x) + imag (x) * imag (x);
+}
+
+#include <iostream>
+using namespace std;
+
+inline ostream& operator << (ostream& os, const complex& r)
+{
+    return os << real(r) << " + j" << imag(r); 
+}
+
+#endif
 ```
