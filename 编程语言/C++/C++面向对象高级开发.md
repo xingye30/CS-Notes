@@ -456,6 +456,276 @@ using std::cout;
 std::cout << ...;
 ```
 
+Object Oriented Programming(OOP), Object Oriented Design(OOD)
+- Inheritance（继承）
+- Composition（复合）
+- Delegation（委托）
+
+composition（复合）：表示has-a
+```
+//设计模式 Adapter
+template<class T>
+class queue {
+  ...
+protected:
+  deque<T> c; //底层容器
+public:
+  //以下完全利用c的操作函数完成
+  bool empty() const { return c.empty(); }
+  size_type size() const { return c.size(); }
+  reference front() { return c.front(); }
+  reference back() { return c.back(); }
+  void push(const value_type& x) { c.push_back(x); }
+  void pop() { c.pop_front(); }
+}
+```
+
+composition（复合）关系下的构造和析构：
+- 构造由内而外：Container的构造函数首先调用Component的default构造函数，然后才执行自己
+```C++
+Container::Container(...) : Component() { ... };
+```
+- 析构由外而内：Container的析构函数首先执行自己，然后才调用Component的析构函数
+```C++
+Container::~Container() : ~Component() { ... };
+```
+
+Delegation（委托）：Composition by reference
+```
+// Handle/Body
+// pimpl point to implement
+// class String对外不变，class StringRep实现可以随时变动
+// 编译防火墙：class String不用重新编译，只要重新编译class StringRep
+class StringRep;
+class String {
+public:
+  String();
+  String(const char* s);
+  String(const String& s);
+  String& operator=(const Strubg& s);
+  ~String();
+  ...
+private:
+  StringRep* rep; //pimpl
+};
+
+class StringRep {
+friend class String;
+  StringRep(const char* s);
+  ~StringRep();
+  int count; //reference counting
+  char* rep;
+};
+```
+
+Inheritance（继承）：表示is-a
+```
+struct _List_node_base
+{
+  _List_node_base* _M_next;
+  _List_node_base* _M_prev;
+};
+
+template<typename _Tp>
+struct _List_node
+  : public _List_node_base
+{
+  _Tp _M_data;
+}
+```
+
+Inheritance（继承）关系下的构造和析构：
+- 构造由内而外：Derived的构造函数首先调用Base的default构造函数，然后才执行自己
+```C++
+Derived::Derived(...) : Base() { ... };
+```
+- 析构由外而内：Derived的析构函数首先执行自己，然后才调用Base的析构函数
+```C++
+Derived::~Derived() : ~Base() { ... };
+```
+
+base class的dtor必须是virtual，否则会出现undefined behavior
+
+Inheritance（继承）with virtual functions（虚函数）
+- non-virtual函数：你不希望derived class重新定义（override，重写）它
+- virtual函数：你希望derived class重新定义（override，重写）它，且你对它已有默认定义
+- pure virtual函数：你希望derived class一定要重新定义（override，重写）它，且你对它没有默认定义
+```
+class Shape {
+public:
+  virtual void draw() const=0; //pure virtual
+  virtual void error(const std::string& msg); //impure virtual
+  int objectID() const; //non-virtual
+  ...
+};
+
+class Rectangle : public Shape { ... };
+class Ellipse : public Shape { ... };
+```
+
+设计模式 Template Method
+```
+// Application framwork
+class CDocument
+{
+public：
+  void OnFileOpen()
+  {
+    ...
+    Serialize(); //this->Serialize();  (*(this->vptr)[n])    (this);
+    ...
+  }
+  virtual void Serialize() { };  
+};
+
+// Application
+class CMyDoc : public CDocument
+{
+  virtual Serialize() { ... }
+};
+
+main()
+{
+  CMyDoc myDoc;
+  ...
+  myDoc.OnFileOpen(); //CDocument::OnFileOpen(&myDoc)
+}
+```
+
+Inheritance+Composition关系下的构造和析构
+
+Delegation+Inheritance
+设计模式 Observer
+```
+class Subject 
+{
+  int m_value;
+  vector<Observer*> m_views;
+public:
+  void attach(Observer* obs)
+  {
+    m_views.push_back(obs);
+  }
+  void set_val(int value)
+  {
+    m_value = value;
+    notify();
+  }
+  void notify()
+  {
+    for (int i = 0; i < m_views.size(); ++i)
+      m_views[i]->update(this, m_value);
+  }
+};
+
+class Observer
+{
+public:
+  virtual void update(Subject* sub, int value) = 0;  
+};
+```
+
+设计模式 Composite
+```
+class Component
+{
+  int value;
+public:
+  Component(int val) { value = val; }
+  virtual void add(Component*) {}
+};
+
+class Primitive : public Component
+{
+public:
+  Primitive(int val) : Component(val) {}
+};
+
+class Composite : public Component
+{
+  vector<Component*> c;
+public:
+  Composite(int val) : Component(val) {}
+  void add(Component* elem) {
+    c.push_back(elem);
+  }
+  ...
+};
+```
+
+设计模式 Prototype
+```
+enum imageType
+{
+  LSAT, SPOT
+};
+
+class Image
+{
+public:
+  virtual void draw() = 0;
+  static Image* findAndClone(imageType);
+protected:
+  virtual imageType returnType() = 0;
+  virtual Image* clone() = 0;
+  //As each subclass of Image is declared, it registers its prototype
+  static void addPrototype(Image* image)
+  {
+    _prototypes[_nextSlot++] = image;
+  }
+private:
+  //addPrototype() saves each registered prototype
+  static Image* _prototpes[10];
+  static int _nextSlot;
+};
+
+Image* Image::_prototypes[];
+int Image::_nextSlot;
+
+//Client calls this public static member function when it need an instance of an Image subclass
+Image* Image::findAndClone(imageType type)
+{
+  for (int i = 0; i < _nextSlot; i++)
+    if (_prototypes[i]->returnType() == Type)
+      return _prototypes[i]->clone();
+}
+
+class LandSatImage : public Image
+{
+public:
+  imageType returnType() {
+    return LSAT;
+  }
+  void draw() {
+    cout << "LandSatImage::draw" << _id << endl;
+  }
+  //when clone() is called, call the one-argument ctor with a dummy arg
+  Image* clone() {
+    return new LandSatImage(1);
+  }
+protected:
+  //This is only called from clone()
+  LandSatImage(int dummy) {
+    _id = _cout++;
+  }
+private:
+  //Mechanism for initializing an Image subclass - this causes the default ctor to be called, which registers the subclass's prototype
+  static LandSatImage() {
+    addPrototype(this);
+  }
+  //Nominal "state" per instance mechanism
+  int _id;
+  static int _count;
+};
+
+//Register the subclass's prototype
+LandSatImage LandSatImage::_landSatImage;
+//Initialize the "state" per instance mechanism
+int LandSatImage::_count = 1;
+```
+
+
+
 
 
 
