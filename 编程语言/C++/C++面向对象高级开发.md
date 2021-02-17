@@ -334,3 +334,85 @@ inline ostream& operator << (ostream& os, const complex& r)
 
 #endif
 ```
+
+Big Three 三个特殊函数
+- 拷贝构造函数
+- 拷贝赋值函数
+- 析构函数
+
+class with pointer members 必须有 copy ctor 和 copy op=
+
+拷贝构造函数
+
+浅拷贝与深拷贝
+
+拷贝赋值函数
+- 检测自我赋值
+
+
+
+string类
+```
+
+```
+
+stack（栈）
+- stack是存在于某作用域内的一块内存空间，在函数体内声明的任何变量使用的内存都是取自stack
+- stack object的生命在作用域结束之际结束，又称为auto object，因为它会被自动清理
+
+static object的生命在作用域结束之后仍然存在，直到整个程序结束
+
+global object的生命在整个程序结束之后才结束，也可以把它视作一种static object
+
+heap（堆）
+- heap，也叫system heap，是由操作系统提供的一块global内存空间，程序可动态分配从中获得若干区块
+- heap object的生命在它被delete之际结束
+
+内存泄漏
+
+new：先分配memory，再调用ctor
+```
+complex* pc = new complex(1, 2);
+//编译器转化为
+complex *pc;
+//new内部调用malloc
+void* mem = operator new (sizeof(complex)); //分配内存
+pc = static_cast<complex*>(mem); //转型
+pc->complex::complex(1, 2); //构造函数
+```
+
+delete：先调用dtor，再释放memory
+```
+string* ps = new string("hello");
+delete ps;
+//编译器转化为
+string::~string(ps); //析构函数
+operator delete(ps); //释放内存
+//delete内部调用free
+```
+
+array new 要搭配 array delete， 不然会造成内存泄漏
+```
+string *p = new string[3];
+delete[] p; //唤起3次dtor
+
+string *p = new string[3];
+delete p; //唤起1次dtor
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
