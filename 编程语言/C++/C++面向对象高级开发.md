@@ -400,15 +400,61 @@ string *p = new string[3];
 delete p; //唤起1次dtor
 ```
 
+static
+- static data members
+- static members functions
+
+调用static函数的方式有二：
+- 通过object调用
+- 通过class name调用
 
 
+class template 类模板
+```
+template<typename T>
+class complex
+{
+public:
+  complex (T r = 0, T i = 0)
+    : re (r), im (i)
+  { }
+  ...
+private:
+  T re, im;
+  ...
+}
 
+complex<double> c1(2.5, 1.5);
+complex<int> c2(2, 6);
+```
 
+function template 函数模板
+```
+template<class T>
+inline 
+const T& min(const T& a, const T& b)
+{
+  return b < a ? b : a;
+}
+//编译器会对function template进行参数推导
+//参数推导的结果：如果T为stone，就调用stone::opeator<
+```
 
+namespace
+```
+namespace std
+{
+  ...
+}
 
+//using directive
+using namespace std;
 
+//using declaration
+using std::cout;
 
-
+std::cout << ...;
+```
 
 
 
