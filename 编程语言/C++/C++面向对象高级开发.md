@@ -725,8 +725,89 @@ int LandSatImage::_count = 1;
 ```
 
 
+pointer-like classes 
+- 智能指针
+- 迭代器
 
+智能指针
+```
+template<class T>
+class shared_ptr
+{
+public:
+  T& operator*() const 
+  { return *px; }
+  
+  T* operator->() const
+  { return px; }
+  
+  shared_ptr(T* p) : px(p) { }
 
+private:
+  T* px;
+  long* pn;
+  ...
+};
+
+struct Foo
+{
+  ...
+  void method(void) { ... }
+};
+
+shared_ptr<Foo> sp(new Foo);
+Foo f(*sp);
+sp->method(); //->得到的东西会继续带着->作用下去
+//px->method();
+```
+
+迭代器
+```C++
+template<class T>
+struct __list_node {
+  void* prev;
+  void* next;
+  T data;
+};
+
+template<class T, class Ref, class Ptr>
+struct __list_iterator {
+  typedef __list_iterator<T, Ref, Ptr> self;
+  typedef Ptr pointer;
+  typedef Ref reference;
+  typedef __list_node<T>* link_type;
+  link_type node;
+  bool operator==(const self& x) const { return node == x.node }
+  bool operator!=(const self& x) const { return node != x.node }
+  reference operator*() const { return (*node).data }
+  pointer operator->() const { return &(operator*()); }
+  self& operator++() { 
+    node = (link_type)((*node).next); 
+    return *this;
+  }
+  self& operator++(int) { 
+    self tmp = *this;
+    ++*this;
+    return tmp;
+  }
+  self& operator--() { 
+    node = (link_type)((*node).prev); 
+    return *this;
+  }
+  self& operator--(int) { 
+    self tmp = *this;
+    --*this;
+    return tmp;
+  }
+}
+
+list<Foo>::iterator ite;
+...
+*ite; //获得一个Foo object
+ite->method();
+//意思是调用Foo::method()
+//相当于(*ite).method()、(&(*ite))0>method()
+```
 
 
 
