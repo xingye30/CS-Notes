@@ -809,6 +809,315 @@ ite->method();
 //相当于(*ite).method()、(&(*ite))0>method()
 ```
 
+function-like classes 仿函数
+```C++
+template<class T>
+struct identity {
+  const T& 
+  operator()(const T& x) const { return x; }
+};
+
+template<class Pair>
+struct select1st {
+  const typename Pair::first_type&
+  operator()(const Pair& x) const
+  { return x.first; }
+};
+
+template<class Pair>
+struct select2nd {
+  const typename Pair::second_type&
+  operator()(const Pair& x) const
+  { return x.second; }
+};
+
+template<class T1, class T2>
+struct pair {
+  T1 first;
+  T2 second;
+  pair() : first(T1()), second(T2()) {}
+  pair(const T1& a, const T2& b)
+    : first(a), second(b) {}
+  ...
+};
+```
+
+member template 成员模板
+```
+template<class T1, class T2>
+struct pair {
+...
+  T1 first;
+  T2 second;
+  pair() : first(T1()), second(T2()) {}
+  pair(const T1& a, const T2& b) :
+    first(a), second(b) {}
+  
+  //让构造函数更有弹性
+  template<class U1, class U2>
+  pair(const pair<U1, U2>& n) :
+    first(p.first), second(p.second) {}
+};
+```
+
+```
+template<typename _Tp>
+class shared_ptr : public __shared_ptr<_Tp>
+{
+...
+  template<typename _Tp1>
+  explicit shared_ptr(_Tp1* __p)
+    : __shared_ptr<_Tp>(__p) {}
+...
+};
+
+Base1* ptr = new Derived1; //up-cast
+shared_ptr<Base1> sptr(new Derived1); //模拟up-cast
+```
+
+specialization 模板特化
+```
+//泛化
+template<class Key>
+struct hash { }; 
+
+//特化
+template<>
+struct hash<char> {
+  size_t operator()(char x) const { return x; }
+};
+
+template<>
+struct hash<int> {
+  size_t operator()(int x) const { return x; }
+};
+
+template<>
+struct hash<long> {
+  size_t operator()(long x) const { return x; }
+};
+
+cout << hash<long>()(1000);
+```
+
+partial specialization 模板偏特化
+
+个数的偏
+```
+template<typename T, typename Alloc=...>
+class vector
+{
+...
+};
+
+template<typename Alloc=...>
+class vector<bool, Alloc>  //绑定  从左到右
+{
+...
+};
+```
+
+范围的偏
+```
+template<typename T>
+class C
+{
+...
+};
+
+template<typename T>
+class C<T*>
+{
+...
+};
+
+C<string> obj1;
+C<string*> obj2;
+```
+
+template template parameter 模板模板参数
+```
+template<typename T,
+         template<typename T>
+           class Container
+        >
+class XCls
+{
+private:
+  Container<T> c;
+public:
+  ...
+};
+
+template<typename T>
+using Lst = list<T, allocator<T>>;
+
+XCls<string, list> mylst1; //错
+XCls<string, Lst> mylst2; //对
+```
+
+variadic templates 可变模板参数
+```
+void print()
+{
+}
+
+template<typename T, typename... Types>
+void print(const T& firstArg, const Types&... args)
+{
+  cout << firstArg << endl;
+  print(args...);
+}
+//...就是一个所谓的pack（包）
+//用于template parameters，就是template parameters pack（模板参数包）
+//用于function parameter types，就是function parameter types pack（函数参数类型包） 
+//用于function parameter，就是function parameter pack（函数参数包） 
+```
+
+
+auto
+```C++
+list<string> c;
+...
+list<string>::iterator ite;
+ite = find(c.begin(), c.end(), target);
+
+list<string> c;
+...
+auto ite = find(c.begin(), c.end(), target);
+
+list<string> c;
+...
+auto ite; //错误
+ite = find(c.begin(), c.end(), target);
+```
+
+ranged-base for
+
+for (decl : coll) {
+  statement
+}
+
+```C++
+vector<double> vec;
+...
+for (auto elem : vec) {   //pass by value
+  cout << elem << endl;
+}
+
+for (auto& elem : vec) {   //pass by reference
+  elem *= 3;
+}
+```
+
+reference 引用
+- object和其reference的大小相同、地址也相同（全部都是假象）
+
+```C++
+int x = 0;
+int* p = &x;
+int& r = x; //r代表x，现在r、x都是0
+//sizeof(r) == sizeof(x)
+//&x = &r
+
+int x2 = 5;
+r = x2; //r不能重新代表其他物体，现在r、x都是5
+int& r2 = r; //现在r2是5，r2代表r，也相当于代表x
+
+typedef struct Stag { int a, b, c, d; } S;
+int main() {
+  double x = 0;
+  double* p = &x; //p指向x，p的值是x的地址
+  double& r = x; //r代表x，现在r，x都是0
+  
+  cout << sizeof(x) << endl;  //8
+  cout << sizeof(p) << endl;  //4
+  cout << sizeof(r) << endl;  //8
+  cout << p << endl;  //0065FDFC
+  cout << *p << endl;  //0
+  cout << x << endl;  //0
+  cout << r << endl;  //0
+  cout << &x << endl;  //0065FDFC
+  cout << &r << endl;  //0065FDFC
+  
+  S s;
+  S& rs = s;
+  cout << sizeof(s) << endl;  //16
+  cout << sizeof(rs) << endl;  //16
+  cout << &s << endl;  //0065FDE8
+  cout << &rs << endl;  //0065FDE8
+}
+```
+
+reference通常不用于声明变量，而用于参数类型和返回类型的描述
+```
+void func1(Cls* pobj) { pobj->xxx(); }
+void func2(Cls pobj) { pobj.xxx(); }
+void func3(Cls& pobj) { pobj.xxx(); }
+//func2和func3 被调用端写法相同
+
+Cls obj;
+func1(&obj);
+func2(obj);
+func3(obj);
+//func2和func3 调用端写法相同
+
+//以下被视为same signature，所以二者不能同时存在
+double imag(const double& im) const { ... }
+double imag(const double im) const { ... } //Ambiguity
+       ---------------------------- 这部分叫signature
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
