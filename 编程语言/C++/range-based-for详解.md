@@ -57,9 +57,9 @@ public:
   explicit C(const string& s); //explicit type conversion from strings
   ...
 };
-```
 
 vector<string> vs;
 for (const C& elem : vs) { //Error, no conversion from string to C defined 
   cout << elem << endl;
 }
+```
