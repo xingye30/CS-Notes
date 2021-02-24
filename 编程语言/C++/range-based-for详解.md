@@ -1,8 +1,11 @@
 # ranged-base-for 详解
 
+使用形式
+```
 for (decl : coll) {
   statement
 }
+```
 
 ```C++
 vector<double> vec;
