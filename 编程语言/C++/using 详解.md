@@ -33,5 +33,22 @@ void fn2(const Cntr& c)
 }
 ```
 
+using-directives for namespace
+```C++
+using namespace std;
+```
 
+using-declarations for namespace members
+```C++
+using std::cout;
+```
+
+using-declarations for class members
+```C++
+protected:
+  using _Base::_M_allocate;
+  using _Base::_M_deallocate;
+  using _Base::_S_nword;
+  using _Base::_M_get_Bit_allocator;
+```
 
