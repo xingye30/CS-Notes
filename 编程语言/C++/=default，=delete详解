@@ -1,0 +1,136 @@
+# =default，=delete详解
+
+如果你自己定义了一个 ctor，那么编译器就不会再给你一个 default ctor
+
+如果你强制加上 =default，就可以重新获得并使用 default ctor
+
+```C++
+class Zoo
+{
+public:
+  Zoo(int i1, int i2) : d1(i1), d2(i2) { }
+  Zoo(const Zoo&) = delete;
+  Zoo(Zoo&&) = default;
+  Zoo& operator=(const Zoo&) = defualt;
+  Zoo& operator=(const Zoo&&) = delete;
+  virtual ~Zoo() { }
+private:
+  int d1, d2;
+};
+```
+
+=default 只能用于 Big-Five
+
+=delete 可以用于任何函数
+
+=0 只能用于虚函数
+
+```C++
+class Foo
+{
+public:
+  Foo(int i) : _i(i) { }
+  Foo() = defualt; //和上一个并存
+  
+  Foo(const Foo& x) : _i(x._i) { }
+  //Foo(const Foo&) = defualt; //Error 只能有一个拷贝构造
+  //Foo(const Foo&) = delete; //Error 已经自定义了拷贝构造
+  
+  Foo& operator=(const Foo& x) { _i = x._i; return *this; }
+  //Foo& operator=(const Foo& x) = default; //Error 只能有一个拷贝赋值
+  //Foo& operator=(const Foo& x) = delete; //Error 已经自定义了拷贝赋值
+  
+  //void func1() = default; //Error func1 can not be default
+  void func2() = delete; //ok
+  
+  //~Foo() = delete; //这会造成使用Foo object时出错
+  ~Foo() = default;
+ 
+private:
+  int _i;
+}
+```
+
+如果没有声明 Big-Three，编译器会自动声明合成版本的一个 copy ctor、一个 copy assignmnet operator 和一个 dtor
+
+如果没有声明任何 ctor， 编译器还会自动声明一个default ctor
+
+所有这些函数都是 public 且 inline
+
+只有当这些函数被调用，他们才会被编译器合成
+
+default ctor 和 dtor 主要是给编译器一个地方来放藏身幕后的 code， 像调用 base classes 以及 non-static members 的 ctors 和 dtors
+
+编译器合成的 dtor 是 non-virtual 的，除非这个 class 的 base class 含有 virtual dtor
+
+copy ctor 和 copy assign operator 的合成版本只是单纯将 source object 的每一个 non-static data member 拷贝到 destination object 
+
+```C++
+class Empty { };
+
+class Empty {
+public:
+  Empty() { ... }
+  Empty(const Empty& rhs) { ... }
+  Empty& operator=(const Empty& rhs) { ... }
+  ~Empty() { ... }
+};
+```
+
+一个类如果有 pointer member，几乎肯定要自定义 Big-Three
+
+一个类如果没有 pointer member，绝大多数无需自定义 Big-Three
+
+No-Copy and Private-Copy
+
+=delete 告诉编译器不要定义它，用于声明式，适用于任何成员函数
+
+但若用于 dtor 后果自负，无法销毁对象
+
+```C++
+struct NoCopy {
+  NoCopy() = default;
+  NoCopy(const NoCopy&) = delete; //no copy
+  NoCopy &operator=(const NoCopy&) = delete; //no assignment
+  ~NoCopy() = default;
+};
+
+struct NoDtor {
+  NoDtor() = default;
+  ~NoDtor() = delete; //can't destroy objects of type NoDtor
+};
+NoDtor nd; //Error NoDtor destructor is deleted
+NoDtor *p = new NoDtor(); //ok but can't delete
+delete p; //Error NoDtor destructor is deleted
+
+class PrivateCopy {
+private:
+  PrivateCopy(const PrivateCopy&);
+  PrivateCopy& operator=(const PrivateCopy&);
+public:
+  PrivateCopy() = default;
+  ~PrivateCopy();
+};
+// 此 class 不允许被 ordinary user code copy，但仍可以被 friends 和 members copy
+// 若要完全禁止，不但必须把 copy controls 放到 private 内，而且不可以定义它
+```
+
+```C++
+namespace boost {
+namespace noncopyable_
+{
+  class noncopyable
+  {
+  protected:
+    noncopyable() {}
+    ~noncopyable() {}
+  private:
+    noncopyable(const noncopyable&);
+    const noncopyable& operator=(const noncopyable&);
+  };
+}
+
+typedef noncopyable_::noncopyable noncopyable;
+}
+```
+
